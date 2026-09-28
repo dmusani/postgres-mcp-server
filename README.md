@@ -66,9 +66,9 @@ Press `Ctrl+C` to stop. No errors = working correctly.
 
 **`get_schema()`** - Get database schema
 
-## Connect to Cursor
+## Connect to Claude Code
 
-Add to your Cursor MCP config (global settings):
+Add a file named `.mcp.json` at the root of the project you want to use it from (Claude Code reads it on start):
 
 ```json
 {
@@ -82,6 +82,14 @@ Add to your Cursor MCP config (global settings):
 ```
 
 Replace `/absolute/path/to/postgres-mcp-server` with your actual project path.
+
+Or register it from the terminal instead:
+
+```bash
+claude mcp add --transport stdio postgres -- poetry -C /absolute/path/to/postgres-mcp-server run python postgres-mcp-server/main.py
+```
+
+Then start `claude` and ask it to list the tables; the `get_schema` tool should appear under the server's tools.
 
 ---
 
