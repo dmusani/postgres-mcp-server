@@ -3,6 +3,9 @@ import os
 import psycopg2
 from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
+from decimal import Decimal
+from datetime import date, datetime
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,19 +22,42 @@ DB_CONFIG = {
     "port": os.getenv("DB_PORT", "5432"),
 }
 
-# TODO: Implement a second MCP tool called `execute_sql`
-# This function should:
-#  - Take a SQL query as input (string)
-#  - Run the query against the Postgres database
-#  - Return the rows as a list of dictionaries (column_name → value)
-# Hint: Use the same psycopg2 connection pattern shown in `get_schema`.
-
-
 # TODO: Implement a third MCP tool called `list_tables`
 # This function should:
 #  - Take no inputs
 #  - Return the list of table names available in the current database
 # Hint: Query `information_schema.tables` and filter for `table_schema = 'public'`.
+
+MAX_ROWS = 200
+
+def _clean(v):
+    if isinstance(v, Decimal):
+        return float(v)
+    if isinstance(v, (date, datetime)):
+        return v.isoformat()
+    return v
+
+@mcp.tool()
+async def execute_sql(query: str) -> List[Dict]:
+    """Run a read-only SELECT and return up to 200 rows as dicts."""
+    q = query.strip().rstrip(";")
+    if not q.lower().startswith(("select", "with")):
+        raise ValueError("Only SELECT queries are allowed.")
+
+    conn = psycopg2.connect(**DB_CONFIG)
+    try:
+        conn.set_session(readonly=True)          # Postgres refuses writes
+        with conn.cursor() as cur:
+            cur.execute("SET statement_timeout = 10000")   # 10 seconds
+            cur.execute(q)
+            cols = [d[0] for d in cur.description]
+            rows = cur.fetchmany(MAX_ROWS + 1)  # one extra row tells us if we cut off
+            result = [dict(zip(cols, map(_clean, r))) for r in rows[:MAX_ROWS]]
+            if len(rows) > MAX_ROWS:
+                result.append({"_note": f"Truncated at {MAX_ROWS} rows; add a LIMIT or aggregate."})
+            return result
+    finally:
+        conn.close()
 
 @mcp.tool()
 async def get_schema(table: str) -> List[Dict]:
