@@ -22,12 +22,6 @@ DB_CONFIG = {
     "port": os.getenv("DB_PORT", "5432"),
 }
 
-# TODO: Implement a third MCP tool called `list_tables`
-# This function should:
-#  - Take no inputs
-#  - Return the list of table names available in the current database
-# Hint: Query `information_schema.tables` and filter for `table_schema = 'public'`.
-
 MAX_ROWS = 200
 
 def _clean(v):
@@ -72,6 +66,32 @@ async def get_schema(table: str) -> List[Dict]:
             cur.execute(sql, (table,))
             rows = [{"column": r[0], "type": r[1]} for r in cur.fetchall()]
     return rows
+
+@mcp.tool()
+async def list_tables(schema: str = "") -> List[Dict]:
+    """List tables and views in the database, with their schema.
+
+    Leave `schema` empty to see every user schema (system schemas are skipped),
+    or pass a name such as "public" to see just that one.
+    """
+    sql = """
+        SELECT table_schema, table_name, table_type
+        FROM information_schema.tables
+        WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+          AND (%s = '' OR table_schema = %s)
+        ORDER BY table_schema, table_name
+    """
+    conn = psycopg2.connect(**DB_CONFIG)
+    try:
+        conn.set_session(readonly=True)
+        with conn.cursor() as cur:
+            cur.execute(sql, (schema, schema))
+            return [
+                {"schema": r[0], "table": r[1], "type": r[2]}
+                for r in cur.fetchall()
+            ]
+    finally:
+        conn.close()
 
 def main():
     # Run MCP server using stdio transport for AI assistant integration
