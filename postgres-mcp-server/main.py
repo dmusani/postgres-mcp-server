@@ -17,7 +17,7 @@ mcp = FastMCP("postgres-server")
 DB_CONFIG = {
     "dbname": os.getenv("DB_NAME", "practice_db"),
     "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", "password123"),
+    "password": os.environ["DB_PASSWORD"],
     "host": os.getenv("DB_HOST", "localhost"),
     "port": os.getenv("DB_PORT", "5432"),
 }
