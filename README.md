@@ -51,7 +51,7 @@ npx @modelcontextprotocol/inspector poetry run python postgres-mcp-server/main.p
 
 This opens a web UI where you can:
 - View available tools under the **Tools** tab
-- Test `get_schema`
+- Test `list_tables`, `get_schema` and `execute_sql`
 - See real-time results
 
 ### Quick Test
@@ -64,7 +64,11 @@ Press `Ctrl+C` to stop. No errors = working correctly.
 
 ## Available Tools
 
-**`get_schema()`** - Get database schema
+**`list_tables(schema="")`** - List tables and views with their schema. Leave `schema` empty for all user schemas, or pass a name such as `"public"`.
+
+**`get_schema(table)`** - Get column names and types for a table.
+
+**`execute_sql(query)`** - Run a read-only `SELECT`/`WITH` query (10-second timeout, up to 200 rows returned).
 
 ## Connect to Claude Code
 
@@ -89,7 +93,7 @@ Or register it from the terminal instead:
 claude mcp add --transport stdio postgres -- poetry -C /absolute/path/to/postgres-mcp-server run python postgres-mcp-server/main.py
 ```
 
-Then start `claude` and ask it to list the tables; the `get_schema` tool should appear under the server's tools.
+Then start `claude` and ask it to list the tables; the `list_tables`, `get_schema` and `execute_sql` tools should appear under the server's tools.
 
 ---
 
